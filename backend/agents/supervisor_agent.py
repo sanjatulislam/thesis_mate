@@ -5,22 +5,49 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from agents.agent_prompts import SUPERVISOR_PROMPT, DIRECT_REPLY_PROMPT
-from helpers.constants import ADVISOR_STEP, JOB_SCOUT_STEP, ANSWER_STEP
+from agents.state import ProgramCode
 
 from pydantic import BaseModel, Field
 from typing import Optional
-from agents.state import AgentState, NextStep
+from agents.state import AgentState, PlanStep
 from common.llm_service import generation_llm
 from langchain_core.messages import SystemMessage, AIMessage
 
 
 
 class Route(BaseModel):
-    next: NextStep = Field(description=f"{ADVISOR_STEP} for thesis rules, {JOB_SCOUT_STEP} for thesis search, {ANSWER_STEP} if you reply yourself.")    
-    task: Optional[str] = Field(None, description=f"Standalone task for the agent, when next is {ADVISOR_STEP} or {JOB_SCOUT_STEP}.")
-    answer: Optional[str] = Field(None, description=f"Your full reply to the student in friendly, complete sentences, when next is {ANSWER_STEP}.")
-    program: Optional[str] = Field(None, description="Programme code when the student states their programme.")
+    steps: list[PlanStep] = Field(
+        default_factory=list,
+        description="Ordered steps for the agents (one step per need, at most 3). Empty when you reply yourself.",
+    )
+    answer: Optional[str] = Field(
+        None, description="When steps is empty: your own full reply to the student in friendly, complete sentences (for example a question asking which subject area interests them). Write new text in your own words."
+    )
+    program: Optional[ProgramCode] = Field(
+        None, description="Programme code when the student states their own programme."
+    )
 
+
+def supervisor_node(state: AgentState) -> dict:
+    prompt = SUPERVISOR_PROMPT.format(program=state.get("program") or "unknown")
+    route = generation_llm.with_structured_output(Route).invoke(
+        [SystemMessage(content=prompt), *state["messages"][-20:]]
+    )
+
+    steps = route.steps[:3]
+    print("[plan]", [(s.agent, s.task) for s in steps] or "reply directly")
+
+    update = {
+        "plan": steps,
+        "results": [],
+        "program": route.program or state.get("program"),
+    }
+    if not steps:
+        answer = route.answer or reply_directly(state)
+        if answer.strip().lower() == state["messages"][-1].content.strip().lower():
+            answer = "" 
+        update["messages"] = [AIMessage(content=answer)]
+    return update
 
 
 def reply_directly(state: AgentState) -> str:
@@ -29,23 +56,3 @@ def reply_directly(state: AgentState) -> str:
 
 
 
-def supervisor_node(state: AgentState) -> dict:
-    prompt = SUPERVISOR_PROMPT.format(program=state.get("program") or "unknown")
-    
-    route = generation_llm.with_structured_output(Route).invoke(
-        [SystemMessage(content=prompt), *state["messages"][-15:]]
-    )
-
-    print(f"[supervisor -> {route.next}] {route.task or ''}")
-
-    update = {
-        "next": route.next,
-        "task": route.task,
-        "program": route.program or state.get("program"),
-    }
-
-    if route.next == "answer":
-        answer = route.answer or reply_directly(state)
-        update["messages"] = [AIMessage(content=answer)]
-
-    return update
