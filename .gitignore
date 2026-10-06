@@ -1,20 +1,36 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-
-# Virtual environment
-.venv/
-venv/
-env/
-
-# Environment variables / secrets
+# --- Secrets ---
 .env
 .env.*
 !.env.example
 
-# IDE
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Model / data caches ---
+.cache/
+huggingface/
+*.log
+
+# --- Frontend (Node / Vite) ---
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# --- Editors / OS ---
 .vscode/
 .idea/
-
-/app/data
+.DS_Store
+Thumbs.db
+desktop.ini
