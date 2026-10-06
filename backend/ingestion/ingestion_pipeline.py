@@ -81,6 +81,26 @@ def chunk_documents(documents, chunk_size=SPLITTER_CHUNK_SIZE, chunk_overlap=SPL
     return chunks
 
 
+def update_chunk_metadata(chunks):
+    all_chunks = []
+
+    if chunks:
+        for i, chunk in enumerate(chunks):
+            source = chunk.metadata.get("source")
+
+            doc_name = source.split("\\")[-1]
+            doc_name_pref = doc_name.split(".")[0]
+            doc_name_ext = doc_name.split(".")[-1]
+
+            doc = Document(page_content=chunk.page_content, metadata={"source": doc_name, "chunk_id": f"{doc_name_pref}_{i+1}.{doc_name_ext}"})
+
+            all_chunks.append(doc)
+
+    print(f"Total chunks: {len(all_chunks)}")
+
+    return all_chunks
+
+
 def store_documents(chunks, should_delete_previous_data=True):
     embeddings = HuggingFaceEmbeddings(
         model_name=EMBEDDING_MODEL,
@@ -112,6 +132,7 @@ def store_documents(chunks, should_delete_previous_data=True):
 def run_ingestion_pipeline(should_delete_previous_data=True):
     documents = load_documents()
     chunks = chunk_documents(documents)
+    chunks = update_chunk_metadata(chunks)
     store_documents(chunks, should_delete_previous_data=should_delete_previous_data)
 
 
