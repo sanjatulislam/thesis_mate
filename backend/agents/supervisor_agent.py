@@ -5,19 +5,21 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from agents.agent_prompts import SUPERVISOR_PROMPT, DIRECT_REPLY_PROMPT
+from helpers.constants import ADVISOR_STEP, JOB_SCOUT_STEP, ANSWER_STEP
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from agents.state import AgentState, NextStep
 from common.llm_service import generation_llm
 from langchain_core.messages import SystemMessage, AIMessage
 
 
+
 class Route(BaseModel):
-    next: NextStep     
-    task: Optional[str] = None
-    answer: Optional[str] = None
-    program: Optional[str] = None
+    next: NextStep = Field(description=f"{ADVISOR_STEP} for thesis rules, {JOB_SCOUT_STEP} for thesis search, {ANSWER_STEP} if you reply yourself.")    
+    task: Optional[str] = Field(None, description=f"Standalone task for the agent, when next is {ADVISOR_STEP} or {JOB_SCOUT_STEP}.")
+    answer: Optional[str] = Field(None, description=f"Your full reply to the student in friendly, complete sentences, when next is {ANSWER_STEP}.")
+    program: Optional[str] = Field(None, description="Programme code when the student states their programme.")
 
 
 

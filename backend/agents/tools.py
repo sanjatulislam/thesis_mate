@@ -4,10 +4,15 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from langchain_core.tools import tool
+from typing import Optional
 
 from retrival.engine import get_rag_response 
 from job_search.job_search_service import fetch_jobs, get_job_detail_by_id, format_job_short, format_job_short_with_days_left
 from helpers.utils import get_datetime_local
+from helpers.constants import (
+    JOBTECH_SORT_ORDER_RELEVANT,
+    JOBTECH_SORT_ORDERS
+)
 
 
 @tool
@@ -20,16 +25,28 @@ def search_guidelines(question: str) -> str:
 
 
 @tool
-def search_jobtech(topic: str, location: str = "") -> str:
-    """Search live thesis (exjobb) positions in Sweden from the JobTech API.
+def search_jobtech(topic: str,
+                   location: str = "",
+                   sort: JOBTECH_SORT_ORDERS = JOBTECH_SORT_ORDER_RELEVANT,
+                   published_after_days: Optional[int] = None,
+                   published_before_days: Optional[int] = None,) -> str:
+    """Search open thesis (exjobb) positions in Sweden on JobTech (Arbetsförmedlingen).
+
     topic: subject area, e.g. "machine learning" or "data science".
-    location: optional city, e.g. "Stockholm".
-    Returns open thesis positions with id, title, employer, location and link.
-    Use get_job_details for the description and deadline of one position,
-    and check_deadlines to see which positions close soonest."""
+    location: city, e.g. "Stockholm". Leave empty to search all of Sweden.
+    sort: "newest" when the student asks for the latest or most recent positions, otherwise "relevance".
+    published_after_days: positions posted within the last N days (e.g. "this week" -> 7).
+    published_before_days: positions posted more than N days ago.
+
+    Returns one line per position with its id. Use get_job_details with an id for the
+    full description, and check_deadlines with ids for application deadlines."""
 
     try:
-        jobs = fetch_jobs(topic, location or None)
+        jobs = fetch_jobs(topic=topic,
+                          location=location or None,
+                          sort=sort,
+                          published_after_days=published_after_days,
+                          published_before_days=published_before_days)
     except Exception as e:
         print(f"Job search failed: {e}")
         return "The job search is temporarily unavailable. Please try again shortly."

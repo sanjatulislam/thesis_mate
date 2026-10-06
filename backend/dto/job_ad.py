@@ -7,7 +7,7 @@ class JobAd(BaseModel):
     headline: str = ""
     employer: str = ""
     cities: list[str] = []
-    deadline_at: Optional[datetime] = None
-    posted_at: Optional[datetime] = None
+    deadline_at: datetime
+    posted_at: datetime
     url: str = ""
     description: str = ""

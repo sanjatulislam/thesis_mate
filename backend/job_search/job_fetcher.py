@@ -14,27 +14,11 @@ from helpers.constants import (
 
 import requests
 
-def get_jobs(query: str) -> list[dict]:
-    try:
-        response = requests.get(
-            JOBTECH_URL,
-            params={"q": query, "limit": JOBTECH_REQUEST_LIMIT, "sort": JOBTECH_REQUEST_SORTING},
-            headers=JOBTECH_REQUEST_HEADER,
-            timeout=JOBTECH_REQUEST_TIMEOUT,
-        )
-        response.raise_for_status()
-        return response.json().get("hits", [])
-
-    except Exception as e:
-        print(f"Request failed: {e}")
-        return []
-
-
-def get_jobs(query: str) -> list[dict]:
+def get_jobs(params: dict) -> list[dict]:
     try:
         response = requests.get(
             JOBTECH_SEARCH_URL,
-            params={"q": query, "limit": JOBTECH_REQUEST_LIMIT, "sort": JOBTECH_REQUEST_SORTING},
+            params=params,
             headers=JOBTECH_REQUEST_HEADER,
             timeout=JOBTECH_REQUEST_TIMEOUT,
         )

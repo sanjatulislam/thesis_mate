@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, date
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 def get_datetime_local():
@@ -17,3 +17,6 @@ def clean_text(text: str) -> str:
     text = re.sub(r" *\n *", "\n", text)       
     text = re.sub(r"\n{3,}", "\n\n", text)      
     return text.strip()
+
+def days_ago(days: int) -> str:
+    return (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")

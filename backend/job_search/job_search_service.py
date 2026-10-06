@@ -5,13 +5,21 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from job_search.job_fetcher import get_jobs, get_job
 from dto.job_ad import JobAd
-from helpers.constants import THESIS_TERMS, JOBTECH_SENDER_LIMIT
-from helpers.utils import get_datetime_local, clean_text, parse_datetime_isoformat
+from helpers.constants import (
+    THESIS_TERMS, 
+    JOBTECH_SENDER_LIMIT, 
+    JOBTECH_REQUEST_LIMIT,
+    JOBTECH_SORT_ORDER_RELEVANT,
+    JOBTECH_SORT_ORDER_NEWEST,
+    JOBTECH_SORT_ORDERS,
+    JOBTECH_SORT_PARAMS
+)
+from helpers.utils import get_datetime_local, clean_text, parse_datetime_isoformat, days_ago
 
 from typing import Optional
 
 
-JOB_CACHE: dict[str, JobAd] = {} 
+JOB_CACHE: dict[str, JobAd] = {}
 
 
 def normalize(ad: dict) -> Optional[JobAd]:
@@ -25,8 +33,8 @@ def normalize(ad: dict) -> Optional[JobAd]:
                 for addr in ad.get("workplace_addresses") or []
                 if addr.get("municipality")
             ],
-            deadline_at = parse_datetime_isoformat(ad.get("application_deadline")),
-            posted_at = parse_datetime_isoformat(ad.get("publication_date")),
+            deadline_at = parse_datetime_isoformat(ad.get("application_deadline")) or get_datetime_local(),
+            posted_at = parse_datetime_isoformat(ad.get("publication_date")) or get_datetime_local(),
             description = clean_text((ad.get("description") or {}).get("text") or ""),
             url = ad.get("webpage_url") or ""
         )
@@ -39,9 +47,6 @@ def is_thesis_ad(title: str, desc: str) -> bool:
     desc = desc.lower()
 
     if any(emp_type in title for emp_type in THESIS_TERMS):
-        return True   
-
-    if any(emp_type in desc for emp_type in THESIS_TERMS):
         return True
 
     return False
@@ -63,26 +68,46 @@ def is_valid_ad(ad: dict) -> bool:
         return False
 
     if not is_thesis_ad(title=title, desc=desc):
-        print(f"Non thesis: {title}, url: {ad.get('webpage_url')}")
+        #print(f"Non thesis: {title}, url: {ad.get('webpage_url')}")
         return False
 
     return True
 
 
-def fetch_jobs(topic: str, location: str | None = None) -> list[JobAd]:
+def fetch_jobs(topic: str, 
+               location: str | None = None,
+               sort: JOBTECH_SORT_ORDERS = JOBTECH_SORT_ORDER_RELEVANT,
+               published_after_days: Optional[int] = None,
+               published_before_days: Optional[int] = None) -> list[JobAd]:
+    
     found: dict[str, JobAd] = {}
 
+    base_params = {"sort": JOBTECH_SORT_PARAMS[sort], "limit": JOBTECH_REQUEST_LIMIT}
+    if published_after_days is not None:
+        base_params["published-after"] = days_ago(published_after_days)
+    if published_before_days is not None:
+        base_params["published-before"] = days_ago(published_before_days)
+
     for term in THESIS_TERMS:
-        query = " ".join(part for part in (topic, location, term) if part)
-        hits = get_jobs(query)
-        print(f"{query}: total {len(hits)} job ads")
+        query = " ".join(
+            part
+            for part in (topic, location, term)
+            if part
+        )
+        params = {**base_params, "q": query}
+        hits = get_jobs(params=params)
+        #print(f"{query}: total {len(hits)} job ads")
 
         for ad in hits:
             job = normalize(ad)
             if job and is_valid_ad(ad):
                 found[job.id] = job
 
-    jobs = list(found.values())[:JOBTECH_SENDER_LIMIT]
+    results = list(found.values())
+
+    results.sort(key=lambda job: job.posted_at, reverse=True)
+    
+    jobs = results[:JOBTECH_SENDER_LIMIT]
     JOB_CACHE.update({job.id: job for job in jobs})
     return jobs
 
@@ -105,7 +130,7 @@ def get_job_detail_by_id(job_id: str) -> JobAd | None:
 
 def format_job_short(job: JobAd) -> str:
     cities = ", ".join(job.cities) or "not stated"
-    return f"- id: {job.id} | {job.headline} | {job.employer} | {cities} | {job.url}"
+    return f"- id: {job.id} | {job.headline} | {job.employer} | {cities} | {job.posted_at} | {job.url}"
 
 def format_job_short_with_days_left(job: JobAd, days: int) -> str:
     return f"- {job.headline} ({job.employer}): {days} days left, deadline {job.deadline_at:%Y-%m-%d} | {job.url}"
