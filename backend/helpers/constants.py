@@ -23,4 +23,15 @@ RAG_FALLBACK_RESPONSE = (
     "Please ask the thesis coordinator at exjobb@it.uu.se or post in the thesis Slack workspace."
 )
 
-MAX_RAG_RESPONSE_GENERATION_RETRIES=2
+RAG_ERROR_RESPONSE = "The guideline search is temporarily unavailable. Please try again in a moment."
+
+MAX_LLM_RETRIES=2
+
+JOBTECH_SEARCH_URL = "https://jobsearch.api.jobtechdev.se/search"
+JOBTECH_SEARCH_AD = "https://jobsearch.api.jobtechdev.se/ad/31491359"
+THESIS_TERMS = ["master thesis", "exjobb", "degree project", "thesis"]
+JOBTECH_SENDER_LIMIT=10
+JOBTECH_REQUEST_LIMIT=20
+JOBTECH_REQUEST_TIMEOUT=20
+JOBTECH_REQUEST_HEADER = { "accept": "application/json" }
+JOBTECH_REQUEST_SORTING = "relevance"

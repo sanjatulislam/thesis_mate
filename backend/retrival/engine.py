@@ -10,10 +10,8 @@ from common.llm_service import generation_llm
 from helpers.retrieval_util import get_decomposition_prompt, format_context, get_rag_prompt
 from helpers.constants import (
     RAG_FALLBACK_RESPONSE,
-    COHERE_TOP_N, 
-    RETRIEVER_TOP_K, 
-    MAX_RAG_RESPONSE_GENERATION_RETRIES
-
+    COHERE_TOP_N,
+    RAG_ERROR_RESPONSE
 )
 
 def get_decomposed_queries(llm, query) -> list[str]:
@@ -46,23 +44,17 @@ def generate_rag_answer(query,
     return response.content
 
 
-def get_rag_response(query, 
-                     should_print_subqueries=False, 
-                     should_print_ranking_score=False, 
+def get_rag_response(query,
+                     should_print_subqueries=False,
+                     should_print_ranking_score=False,
                      reranking_top_n=COHERE_TOP_N):
-    for attempt in range(MAX_RAG_RESPONSE_GENERATION_RETRIES + 1):
-
-        response = generate_rag_answer(
+    try:
+        return generate_rag_answer(
             query,
             reranking_top_n=reranking_top_n,
             should_print_subqueries=should_print_subqueries,
-            should_print_ranking_score=should_print_ranking_score
+            should_print_ranking_score=should_print_ranking_score,
         )
-
-        if response.strip() != RAG_FALLBACK_RESPONSE:
-            return response
-
-        if attempt < MAX_RAG_RESPONSE_GENERATION_RETRIES:
-            reranking_top_n = RETRIEVER_TOP_K
-
-    return response
+    except Exception as e:
+        print(f"RAG answer generation failed: {e}")
+        return RAG_ERROR_RESPONSE
