@@ -45,13 +45,10 @@ app = graph.compile(checkpointer=MemorySaver())
 
 
 def chat(message: str, thread_id: str) -> dict:
-
-    messages = [HumanMessage(content=message)]
     config = {"configurable": {"thread_id": thread_id}}
-
-    result = app.invoke({"messages": messages}, config=config)
+    result = app.invoke({"messages": [HumanMessage(content=message)]}, config=config)
 
     return {
         "reply": result["messages"][-1].content,
-        "program": result.get("program"),
+        "program": result.get("program")
     }

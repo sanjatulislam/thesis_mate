@@ -13,3 +13,5 @@ ipykernel
 jupyter
 pymupdf
 sentence-transformers
+fastapi 
+uvicorn

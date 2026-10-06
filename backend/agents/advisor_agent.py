@@ -16,12 +16,6 @@ advisor_agent = create_agent(generation_llm,
                              tools=[search_guidelines], 
                              system_prompt=ADVISOR_PROMPT)
 
-
-# def advisor_node(state: AgentState) -> dict:
-#     result = advisor_agent.invoke({"messages": [HumanMessage(content=state["task"])]})
-#     return {"messages": [result["messages"][-1]]}
-
-
 def advisor_node(state: AgentState) -> dict:
     results = state.get("results") or []
     step, *rest = state["plan"]

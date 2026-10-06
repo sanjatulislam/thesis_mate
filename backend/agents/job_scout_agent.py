@@ -18,10 +18,6 @@ job_scout_agent = create_agent(
     system_prompt=JOB_SCOUT_PROMPT,
 )
 
-# def job_scout_node(state: AgentState) -> dict:
-#     result = job_scout_agent.invoke({"messages": [HumanMessage(content=state["task"])]})
-#     return {"messages": [result["messages"][-1]]}
-
 def job_scout_node(state: AgentState) -> dict:
     results = state.get("results") or []
     step, *rest = state["plan"]
