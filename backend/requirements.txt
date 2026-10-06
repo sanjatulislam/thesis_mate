@@ -1,0 +1,15 @@
+python-dotenv
+langchain
+langgraph
+langchain-core
+langchain-community
+langchain-groq
+langchain-cohere
+langchain-text-splitters
+weaviate-client
+langchain-weaviate
+langchain-huggingface
+ipykernel
+jupyter
+pymupdf
+sentence-transformers
