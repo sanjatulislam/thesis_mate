@@ -26,6 +26,7 @@ class AgentState(TypedDict):
     messages: Annotated[list, add_messages] 
     program: Optional[str]
     plan: list[PlanStep]
+    steps: list[PlanStep]
     results: list[str]
 
 

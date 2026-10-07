@@ -11,7 +11,6 @@ from agents.advisor_agent import advisor_node
 from agents.supervisor_agent import supervisor_node
 from agents.job_scout_agent import job_scout_node
 from agents.state import AgentState
-from helpers.constants import ADVISOR_STEP, JOB_SCOUT_STEP, ANSWER_STEP
 
 
 def next_step(state: AgentState) -> str:
@@ -22,8 +21,10 @@ def next_step(state: AgentState) -> str:
 
 
 def finish_node(state: AgentState) -> dict:
-    reply = "\n\n".join(state.get("results") or [])
-    return {"messages": [AIMessage(content=reply)], "results": []}
+    results = state.get("results") or []
+    if not results:
+        return {}   
+    return {"messages": [AIMessage(content="\n\n".join(results))], "results": []}
 
 
 ROUTES = {"advisor": "advisor", "job_scout": "job_scout", "finish": "finish", END: END}
@@ -50,5 +51,6 @@ def chat(message: str, thread_id: str) -> dict:
 
     return {
         "reply": result["messages"][-1].content,
-        "program": result.get("program")
+        "program": result.get("program"),
+        "steps": result.get("steps") or [],
     }

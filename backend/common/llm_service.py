@@ -12,7 +12,8 @@ from helpers.constants import (
     GENERATION_LLM, 
     GENERATION_TEMPERATURE, 
     GENERATION_LLM_MAX_TOKENS,
-    MAX_LLM_RETRIES
+    MAX_LLM_RETRIES,
+    GENERATION_LLM_THINKING_MODE
 )
 
 
@@ -23,5 +24,6 @@ generation_llm = ChatGroq(
         api_key=os.environ['GROQ_API_KEY'],
         max_tokens=GENERATION_LLM_MAX_TOKENS,
         temperature=GENERATION_TEMPERATURE,
-        max_retries=MAX_LLM_RETRIES
+        max_retries=MAX_LLM_RETRIES,
+        reasoning_effort=GENERATION_LLM_THINKING_MODE
     )

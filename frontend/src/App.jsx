@@ -2,6 +2,23 @@ import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import "./App.css";
 
+
+
+const AGENT_LABELS = { advisor: "Thesis Advisor", job_scout: "Job Scout" };
+
+function Route({ steps }) {
+  const path = ["Supervisor", ...steps.map((s) => AGENT_LABELS[s.agent] || s.agent)];
+  const label = steps.length === 0 ? "Supervisor → answered directly" : path.join(" → ");
+  const tasks = steps.map((s, i) => `${i + 1}. ${AGENT_LABELS[s.agent]}: ${s.task}`).join("\n");
+
+  return (
+    <div className="route" title={tasks || "The Supervisor replied without an agent"}>
+      [{label}]
+    </div>
+  );
+}
+
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -37,7 +54,7 @@ export default function App() {
 
       if (data.program) setProgram(data.program);
 
-      setMessages((m) => [...m, { role: "bot", content: data.reply }]);
+      setMessages((m) => [...m, { role: "bot", content: data.reply, steps: data.steps }]);
 
     } catch {
       setMessages((m) => [...m, { role: "bot", content: "Sorry, something went wrong. Please try again." }]);
@@ -67,10 +84,13 @@ export default function App() {
           <p className="hint">Ask about thesis rules, deadlines, or find thesis positions in Sweden.</p>
         )}
         {messages.map((m, i) => (
-          <div key={i} className={`bubble ${m.role}`}>
-            <ReactMarkdown components={{ a: (p) => <a {...p} target="_blank" rel="noreferrer" /> }}>
-              {m.content}
-            </ReactMarkdown>
+          <div key={i} className={`msg ${m.role}`}>
+            {m.role === "bot" && m.steps && <Route steps={m.steps} />}
+            <div className={`bubble ${m.role}`}>
+              <ReactMarkdown components={{ a: (p) => <a {...p} target="_blank" rel="noreferrer" /> }}>
+                {m.content}
+              </ReactMarkdown>
+            </div>
           </div>
         ))}
         {loading && <div className="bubble bot thinking">Thinking…</div>}

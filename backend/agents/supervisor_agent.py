@@ -39,13 +39,17 @@ def supervisor_node(state: AgentState) -> dict:
 
     update = {
         "plan": steps,
+        "steps": steps,
         "results": [],
         "program": route.program or state.get("program"),
     }
     if not steps:
-        answer = route.answer or reply_directly(state)
-        if answer.strip().lower() == state["messages"][-1].content.strip().lower():
-            answer = "" 
+        answer = (route.answer or "").strip()
+        is_echo = answer.lower() == state["messages"][-1].content.strip().lower()
+
+        if not answer or is_echo:
+            answer = reply_directly(state, update["program"]).strip()
+
         update["messages"] = [AIMessage(content=answer)]
     return update
 

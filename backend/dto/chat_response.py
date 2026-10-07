@@ -6,3 +6,4 @@ class ChatResponse(BaseModel):
     reply: str
     thread_id: str
     program: Optional[str] = None
+    steps: list[PlanStep] = []
