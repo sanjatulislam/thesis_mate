@@ -100,8 +100,14 @@ def update_chunk_metadata(chunks):
 
     return all_chunks
 
+def collection_count(client, name: str) -> int:
+    if not client.collections.exists(name):
+        return 0
+    result = client.collections.get(name).aggregate.over_all(total_count=True)
+    return result.total_count or 0
 
-def store_documents(chunks, should_delete_previous_data=True):
+
+def store_documents(chunks, rebuild=False):
     embeddings = HuggingFaceEmbeddings(
         model_name=EMBEDDING_MODEL,
         encode_kwargs={"normalize_embeddings": True}
@@ -112,8 +118,15 @@ def store_documents(chunks, should_delete_previous_data=True):
         auth_credentials=Auth.api_key(os.environ['WEAVIATE_ADMIN_API_KEY'])
     )
 
-    if should_delete_previous_data:
-        client.collections.delete_all()
+    existing = collection_count(client, WEAVIATE_COLLECTION)
+
+    if existing and not rebuild:
+        print(f"'{WEAVIATE_COLLECTION}' already has {existing} chunks, skipping. Use rebuild=True to re-ingest.")
+        return
+
+    if existing and rebuild:
+        client.collections.delete(WEAVIATE_COLLECTION)
+        print(f"Deleted '{WEAVIATE_COLLECTION}' for a clean rebuild.")
 
     store = WeaviateVectorStore(
         client=client,
@@ -129,11 +142,11 @@ def store_documents(chunks, should_delete_previous_data=True):
     client.close()
 
 
-def run_ingestion_pipeline(should_delete_previous_data=True):
+def run_ingestion_pipeline(rebuild=False):
     documents = load_documents()
     chunks = chunk_documents(documents)
     chunks = update_chunk_metadata(chunks)
-    store_documents(chunks, should_delete_previous_data=should_delete_previous_data)
+    store_documents(chunks, rebuild=rebuild)
 
 
 if __name__ == "__main__":
