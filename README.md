@@ -181,7 +181,8 @@ Use a new chat for each group.
 - **Structured job memory:** keep the ids of the positions shown to the student in the graph state, so follow-ups about "the first one" or "these" never depend on text copied between agents.
 - **Streaming responses** and showing tool calls live in the UI.
 - **Evaluation:** an automated test set for routing decisions and RAG answers (correctness, faithfulness), run on every change.
-- **Better job relevance:** rank positions by similarity to the student's programme and cache JobTech results.
+- **Programme-aware search:** derive several search topics from the student's programme (e.g. Embedded Systems → "embedded systems", "IoT", "real-time systems") and combine the results, instead of one topic per search.
+- **Smarter thesis detection:** also check the ad description for clear thesis phrases, or classify ads with a small LLM call, so thesis positions are found even when the title doesn't say so.
 - **Citations** linking each rule to its section in the guidelines PDF.
 - **Deployment:** docker Compose for backend and frontend.
 - **Richer UI:** stream responses and show each agent's tool calls live, display job positions as cards with deadline badges, and add example questions to start a chat.
