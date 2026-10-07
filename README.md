@@ -175,17 +175,17 @@ Use a new chat for each group.
 
 ## What I would improve with more time
 
-- **Verifier agent** that checks the Advisor's answer against the retrieved excerpts before replying.
+- **Synthesis and verification:** instead of joining the agents' answers, let an LLM merge them into one coherent reply (keeping dates and links unchanged), then let a verifier check that every part of the question is answered and every claim is supported by the agents' results, retrying or re-planning when the check fails.
 - **Re-planning:** let the Supervisor review the plan after each step (e.g. skip the Advisor step when no positions were found). The plan is currently fixed per message to keep it to one planning call.
-- **Persistent memory:** a SQLite/Postgres checkpointer instead of in-memory state.
 - **Structured job memory:** keep the ids of the positions shown to the student in the graph state, so follow-ups about "the first one" or "these" never depend on text copied between agents.
-- **Streaming responses** and showing tool calls live in the UI.
-- **Evaluation:** an automated test set for routing decisions and RAG answers (correctness, faithfulness), run on every change.
+- **Long-conversation memory:** summarize older messages, or store more key facts as state fields (like the programme), so details from early in a long chat are kept.
+- **Persistent memory:** a SQLite/Postgres checkpointer instead of in-memory state.
+- **Evaluation:** an automated test set for routing decisions and RAG answers (correctness, faithfulness). Use LLM-as-judge scoring of RAG answers for correctness against reference answers and faithfulness to the retrieved excerpts.
 - **Programme-aware search:** derive several search topics from the student's programme (e.g. Embedded Systems → "embedded systems", "IoT", "real-time systems") and combine the results, instead of one topic per search.
 - **Smarter thesis detection:** also check the ad description for clear thesis phrases, or classify ads with a small LLM call, so thesis positions are found even when the title doesn't say so.
 - **Citations** linking each rule to its section in the guidelines PDF.
-- **Deployment:** docker Compose for backend and frontend.
 - **Richer UI:** stream responses and show each agent's tool calls live, display job positions as cards with deadline badges, and add example questions to start a chat.
+- **Deployment:** Docker Compose for backend and frontend.
 
 ## Known limitations
 
