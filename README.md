@@ -3,8 +3,32 @@
 A multi-agent assistant for master's students at the IT Department, Uppsala University. It answers questions about the official degree project (thesis) guidelines and finds open thesis positions in Sweden.
 
 - **Thesis rules** come from the department's guidelines PDF, through RAG.
-- **Thesis positions** come live from the JobTech JobSearch API (Arbetsförmedlingen).
+- **Thesis positions** come live from the JobTech JobSearch API.
 - A **Supervisor** plans each message and hands the work to two specialist agents, which can work together on one question.
+
+---
+
+## Assignment requirements
+
+| Requirement | How ThesisMate meets it |
+|---|---|
+| LLM | Qwen 3.8 27B (instruct mode) on Groq |
+| Small RAG knowledge base | The IT Department's thesis guidelines PDF, chunked and stored in Weaviate |
+| At least 3 tools | 4 tools: `search_guidelines`, `search_jobtech`, `get_job_details`, `check_deadlines` (see below) |
+| At least 2 agents with different responsibilities | Thesis Advisor (research on the guidelines) and Job Scout (finding and analysing positions), coordinated by a Supervisor (planning) |
+| Agentic framework | LangGraph |
+| Simple frontend | React + Vite chat |
+| Dynamic decisions | The Supervisor decides which agent(s) handle a message, in what order and whether RAG is needed at all. each agent chooses its own tools |
+| Backend handles LLM calls, orchestration, tools, RAG and state | FastAPI + LangGraph, conversation memory per `thread_id` |
+
+**Tools mapped to the example tool types in the brief**
+
+| Tool type in the brief | Tool |
+|---|---|
+| Search the knowledge base | `search_guidelines`: RAG over the thesis guidelines |
+| Call a public API | `search_jobtech`: searches the JobTech JobSearch API (Arbetsförmedlingen) |
+| Query structured data | `get_job_details`: looks up one position by id and returns its structured fields |
+| Perform a calculation | `check_deadlines`: computes the days left to apply |
 
 ---
 
@@ -21,9 +45,10 @@ Create a file `backend/.env` with these variables:
 ```
 GROQ_API_KEY=your-groq-key
 WEAVIATE_URL=https://your-cluster.weaviate.cloud
-WEAVIATE_API_KEY=your-read-key
+WEAVIATE_VIEWER_API_KEY=your-read-key
 WEAVIATE_ADMIN_API_KEY=your-admin-key   # only needed for ingestion
 COHERE_API_KEY=your-cohere-key
+HF_TOKEN=your-huggingface-token
 ```
 
 Then install the dependencies:
@@ -60,63 +85,30 @@ The Vite dev server forwards `/api` to the backend, so no CORS setup is needed.
 | Agent framework | LangGraph (StateGraph, conditional edges, MemorySaver), LangChain `create_agent` |
 | LLM | Qwen model served by Groq (`langchain-groq`) |
 | Vector database | Weaviate Cloud, hybrid search (BM25 + vectors) |
-| Embeddings | `BAAI/bge-base-en-v1.5` (Hugging Face, normalized, query instruction prefix) |
+| Embeddings | `BAAI/bge-base-en-v1.5` (Hugging Face) |
 | Reranking | Cohere Rerank |
 | PDF processing | PyMuPDF, `RecursiveCharacterTextSplitter` |
-| Public API | JobTech JobSearch API (Arbetsförmedlingen) |
+| Public API | JobTech JobSearch API |
 | Backend | FastAPI, Pydantic |
 | Frontend | React + Vite, `react-markdown` |
 
 ---
 
-## Architecture
-
-The React chat sends each message to the FastAPI backend (`POST /api/chat`), which runs a LangGraph graph:
-
-1. **Supervisor** reads the conversation and either replies itself or creates a plan of 1–3 steps.
-2. **Thesis Advisor** and **Job Scout** carry out the steps in order. The Advisor searches the guidelines in Weaviate; the Job Scout calls the JobTech API.
-3. **finish** joins the agents' answers into one reply, which goes back to the UI together with the plan.
-
-<!-- Demo screenshots -->
-
-```
-backend/
-  main.py              FastAPI app (/api/chat, /api/health)
-  agents/              graph, Supervisor, Thesis Advisor, Job Scout, state, tools, prompts
-  retrival/            retriever (hybrid search + rerank) and RAG answer generation
-  job_search/          JobTech client, thesis filtering, deadline helpers
-  ingestion/           PDF loading, chunking and storing in Weaviate
-  dto/                 request/response models
-frontend/
-  src/App.jsx          chat UI
-```
-
-**Conversation state.** Each chat has a `thread_id`. LangGraph's `MemorySaver` checkpointer stores the messages, the student's programme and the current plan per thread, so follow-ups like "tell me more about the first one" work. Memory is in-memory and resets when the server restarts.
-
----
-
-## Agents and their responsibilities
+## Agentic architecture and their responsibilities
 
 | Agent | Role | Tools |
 |---|---|---|
-| **Supervisor** (planner) | Reads the conversation and decides who answers: it replies itself (greetings, unclear or off-topic messages, asking for the programme) or plans 1–3 steps for the agents. It rewrites each step as a standalone task (resolving "it", "the first one") and remembers the student's programme. | none (structured output) |
+| **Supervisor** (planner) | Reads the conversation and decides who answers: it replies itself (greetings, unclear or off-topic messages, asking for the programme) or plans 1-3 steps for the agents. It rewrites each step as a standalone task (resolving "it", "the first one") and remembers the student's programme. | none (structured output) |
 | **Thesis Advisor** (research) | Answers questions about the thesis rules: deadlines, project plan, roles, eligibility, programme requirements. It answers only from the guidelines and points to the thesis coordinator when something isn't covered. | `search_guidelines` |
 | **Job Scout** (analysis) | Finds open thesis positions, sorts and filters them, checks application deadlines and summarizes single positions. | `search_jobtech`, `get_job_details`, `check_deadlines` |
 
 Both specialists are ReAct agents: they decide themselves which tools to call and in which order.
 
+**Conversation state.** Each chat has a `thread_id`. LangGraph's `MemorySaver` checkpointer stores the messages. Memory is in-memory and resets when the server restarts.
+
 ---
 
-## Tools and RAG
-
-| Tool | Type | What it does |
-|---|---|---|
-| `search_guidelines` | Knowledge base search | Runs the RAG pipeline over the guidelines and returns a grounded answer |
-| `search_jobtech` | Public API | Searches JobTech for thesis positions by topic and city; supports `sort="newest"` and published-date filters; keeps only open thesis ads |
-| `get_job_details` | Public API lookup | Fetches the full description, deadline and link of one position |
-| `check_deadlines` | Calculation + filter | Computes days left to apply, filters by `within_days`, sorts by urgency |
-
-**RAG pipeline**
+## RAG pipeline
 1. **Ingestion:** PyMuPDF extracts the PDF; pages are merged and page numbers removed so sections are not cut at page breaks. Chunks of 1500 characters with 300 overlap, split on programme headings first, so each programme's rules stay together. Each chunk gets a `chunk_id`.
 2. **Query decomposition:** the question is split into focused English sub-queries (structured output), e.g. a question about two topics becomes two searches.
 3. **Hybrid retrieval:** Weaviate combines BM25 (exact terms like "VT27" or "TDA2M") with vector search (meaning).
@@ -188,6 +180,6 @@ Use a new chat for each group.
 ## Known limitations
 
 - Groq's free tier has a daily token limit; long test sessions can hit rate limits.
+- The Supervisor only sees the last 20 messages. Details mentioned earlier in a long chat (e.g. a name given in the first message) are forgotten. The student's programme is not affected: it is stored as its own state field and included in every Supervisor prompt.
 - JobTech ads are not tagged as thesis positions, so a keyword filter decides; a few false positives or misses are possible.
 - The guidelines cover six programmes; other programmes are out of scope.
-- Job follow-ups ("when does the third one close?") depend on the Supervisor copying the earlier positions' links into the Job Scout's task. If that text is incomplete, the Job Scout may miss a position or ask the student for the link. Storing the last shown job ids in the graph state would make follow-ups independent of the task text.
