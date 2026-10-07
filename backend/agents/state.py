@@ -38,6 +38,6 @@ def task_with_context(step: PlanStep, results: list[str]) -> str:
 
 def final_text(result: dict) -> str:
     for m in reversed(result["messages"]):
-        if isinstance(m, AIMessage) and isinstance(m.content, str) and m.content.strip():
+        if isinstance(m, AIMessage) and isinstance(m.content, str) and m.content.strip() and not m.tool_calls:
             return m.content
     return "Sorry, I couldn't put together an answer this time. Could you try asking again?"
