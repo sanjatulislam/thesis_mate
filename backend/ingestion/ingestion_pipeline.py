@@ -3,7 +3,6 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-
 from typing import Optional
 import re
 from dotenv import load_dotenv
@@ -22,13 +21,15 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 from helpers.constants import (
-    DATA_DIR,
     WEAVIATE_TEXT_KEY, 
     EMBEDDING_MODEL, 
     SPLITTER_CHUNK_SIZE, 
     SPLITTER_CHUNK_OVERLAP,
     WEAVIATE_COLLECTION
 )
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_PATH = BASE_DIR / "data" 
 
 load_dotenv()
 
@@ -51,7 +52,7 @@ def merge_pages_to_single_document(doc_name, pages) -> Optional[Document]:
 
 def load_documents() -> list[Document]:
     all_docs = []
-    data_dir = Path(DATA_DIR)
+    data_dir = Path(DATA_PATH)
 
     for pdf in data_dir.glob("*.pdf"):
         loader = PyMuPDFLoader(file_path=pdf)

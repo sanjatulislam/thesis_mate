@@ -1,7 +1,5 @@
 from typing import Literal
 
-DATA_DIR="./../data"
-
 WEAVIATE_COLLECTION="thesis_guideline"
 WEAVIATE_TEXT_KEY="content"
 
