@@ -126,16 +126,15 @@ ThesisMate uses **Plan-and-Execute** at the top level and **ReAct** inside each 
 3. **Results are passed along:** each agent receives the answers of the earlier steps together with its own task, so a later agent can build on an earlier one.
 4. `finish` joins the answers into one reply, which is saved to the conversation.
 
-Example: *"Find data science thesis positions in Uppsala and tell me if I can do one at a company."*
+Example: *"Find machine learning thesis positions in Goteborg and tell me if I can do one at a company as my thesis"*
 ```
 Supervisor plan:
-  1. job_scout  "Find data science thesis positions in Uppsala"
+  1. job_scout  "Find machine learning thesis positions in Goteborg"
   2. advisor    "Can a master's thesis be done at a company?"
 Job Scout   -> searches JobTech, lists positions
 Advisor     -> receives the positions as context, checks the guidelines, answers about these positions
 finish      -> one combined reply
 ```
-The UI shows the route above each reply, e.g. `[Supervisor → Job Scout → Thesis Advisor]`; hovering shows each step's task.
 
 ---
 
@@ -148,20 +147,29 @@ Use a new chat for each group.
 - Who is responsible for finding a subject reviewer?
 - I'm in Data Science. What are the requirements to start my thesis?
 
+  <img width="556" height="484" alt="advisor_agent_ans" src="https://github.com/user-attachments/assets/fd9813e1-0195-4122-9b4b-76822e12116f" />
+
+
 **Tool use (Job Scout)**
 - Find machine learning thesis positions in Stockholm
-- Which of these close within 7 days?
-- Tell me more about the first one
-- Show the newest data science thesis positions posted this week
+- Can you tell me more about Reinforcement Learning (RL) one?
+- How many days left for applying in this?
+
+<img width="392" height="469" alt="job_scout_agent_ans_1" src="https://github.com/user-attachments/assets/ccef00f5-7c25-49d7-a456-1871d59f0c18" />
+<img width="475" height="466" alt="job_scout_agent_ans_2" src="https://github.com/user-attachments/assets/e35c4be9-a6b4-41bf-bcef-7ff7a3c6328c" />
+<img width="463" height="475" alt="job_scout_agent_ans_3" src="https://github.com/user-attachments/assets/6ada88f3-10b9-478f-8c1c-05b315ba08a2" />
+
 
 **Multi-agent collaboration**
-- Find data science thesis positions in Uppsala and tell me if I can do one at a company as my thesis
-- What do I need to start my thesis, and are there AI thesis jobs in Uppsala?
+- Find machine learning thesis positions in Goteborg and tell me if I can do one at a company as my thesis
+
+<img width="385" height="473" alt="multi_agent_collaboration" src="https://github.com/user-attachments/assets/8594b19d-c2ec-4796-9dac-d90fa722d4c7" />
+
 
 **Supervisor decisions**
 - Hi → replies directly
 - Find thesis jobs in Sweden → asks which subject area (no programme known yet)
-- My friend studies Embedded Systems, what are her requirements? → answers about TIS2M without changing your stored programme
+<img width="557" height="479" alt="direct_ans" src="https://github.com/user-attachments/assets/f9006c1b-280b-4645-94cd-3f17f264233c" />
 
 ---
 
@@ -173,13 +181,14 @@ Use a new chat for each group.
 - **Structured job memory:** keep the ids of the positions shown to the student in the graph state, so follow-ups about "the first one" or "these" never depend on text copied between agents.
 - **Streaming responses** and showing tool calls live in the UI.
 - **Evaluation:** an automated test set for routing decisions and RAG answers (correctness, faithfulness), run on every change.
-- **Better job relevance:** rank positions by similarity to the student's programme, and cache JobTech results.
+- **Better job relevance:** rank positions by similarity to the student's programme and cache JobTech results.
 - **Citations** linking each rule to its section in the guidelines PDF.
-- **Deployment:** Docker Compose for backend and frontend.
+- **Deployment:** docker Compose for backend and frontend.
+- **Richer UI:** stream responses and show each agent's tool calls live, display job positions as cards with deadline badges, and add example questions to start a chat.
 
 ## Known limitations
 
-- Groq's free tier has a daily token limit; long test sessions can hit rate limits.
-- The Supervisor only sees the last 20 messages. Details mentioned earlier in a long chat (e.g. a name given in the first message) are forgotten. The student's programme is not affected: it is stored as its own state field and included in every Supervisor prompt.
-- JobTech ads are not tagged as thesis positions, so a keyword filter decides; a few false positives or misses are possible.
-- The guidelines cover six programmes; other programmes are out of scope.
+- **Incomplete job follow-ups:** for questions like "when do these close?", the Supervisor copies the earlier positions' titles and links into the Job Scout's task. With long lists, this copied text is sometimes cut off, so the answer covers only some of the positions and the Job Scout asks the student for the missing links. 
+- **Groq token limits:** groq's free tier has a daily token limit, so long test sessions can hit rate limits.
+- **Limited conversation window:** the Supervisor only sees the last 20 messages, so details mentioned early in a long chat (e.g. a name given in the first message) are forgotten. The student's programme is not affected: it is stored as its own state field and included in every Supervisor prompt.
+- **Thesis ad detection:** jobTech ads are not tagged as thesis positions, so a keyword filter decides; a few false positives or misses are possible.
