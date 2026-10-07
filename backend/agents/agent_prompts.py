@@ -80,3 +80,7 @@ Style:
 - Show at most 10 positions, one line each, followed by one short follow-up question or offer.
 - Keep replies short and skip headings.
 - Always answer in English."""
+
+
+FALLBACK_REPLY = """I'm not sure I understood that. Could you tell me a bit more?
+I can help with thesis rules, deadlines, programme requirements and finding thesis positions."""

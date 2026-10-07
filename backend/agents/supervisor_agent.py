@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from agents.agent_prompts import SUPERVISOR_PROMPT, DIRECT_REPLY_PROMPT
+from agents.agent_prompts import SUPERVISOR_PROMPT, DIRECT_REPLY_PROMPT, FALLBACK_REPLY
 from agents.state import ProgramCode
 
 from pydantic import BaseModel, Field
@@ -18,7 +18,9 @@ from langchain_core.messages import SystemMessage, AIMessage
 class Route(BaseModel):
     steps: list[PlanStep] = Field(
         default_factory=list,
-        description="Ordered steps for the agents (one step per need, at most 3). Empty when you reply yourself.",
+        description=("Ordered steps for the agents: one step per distinct need, as few as possible (at most 3). "
+                     "Questions about several positions or several parts of the same topic are one step. "
+                     "Empty when you reply yourself.")
     )
     answer: Optional[str] = Field(
         None, description="When steps is empty: your own full reply to the student in friendly, complete sentences (for example a question asking which subject area interests them). Write new text in your own words."
@@ -50,13 +52,13 @@ def supervisor_node(state: AgentState) -> dict:
         if not answer or is_echo:
             answer = reply_directly(state, update["program"]).strip()
 
-        update["messages"] = [AIMessage(content=answer)]
+        update["messages"] = [AIMessage(content=answer or FALLBACK_REPLY)]
     return update
 
 
-def reply_directly(state: AgentState) -> str:
-    """Plain LLM reply for small talk, used if the Supervisor left 'answer' empty."""
-    return generation_llm.invoke([SystemMessage(content=DIRECT_REPLY_PROMPT), *state["messages"][-4:]]).content
+def reply_directly(state: AgentState, program: Optional[str] = None) -> str:
+    prompt = DIRECT_REPLY_PROMPT.format(program=program or state.get("program") or "unknown")
+    return generation_llm.invoke([SystemMessage(content=prompt), *state["messages"][-4:]]).content
 
 
 

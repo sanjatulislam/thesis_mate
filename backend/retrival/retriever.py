@@ -23,7 +23,8 @@ from helpers.constants import (
     COHERE_TOP_N,
     EMBEDDING_MODEL_QUERY_INSTRUCTION, 
     RETRIEVER_TOP_K,
-    COHERE_RERANK_MODEL
+    COHERE_RERANK_MODEL,
+    RETRIEVER_ALPHA
 )
 
 load_dotenv()
@@ -64,7 +65,7 @@ def get_retriever():
     vector_db = get_vector_store()
 
     retriever = vector_db.as_retriever(
-        search_kwargs={"k": RETRIEVER_TOP_K}
+        search_kwargs={"k": RETRIEVER_TOP_K, "alpha": RETRIEVER_ALPHA}
     )
 
     return retriever

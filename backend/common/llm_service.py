@@ -19,11 +19,18 @@ from helpers.constants import (
 
 load_dotenv()
 
-generation_llm = ChatGroq(
-        model=GENERATION_LLM,
+def get_groq(model=GENERATION_LLM,
+             max_tokens=GENERATION_LLM_MAX_TOKENS,
+             temperature=GENERATION_TEMPERATURE,
+             max_retries=MAX_LLM_RETRIES,
+             reasoning_effort=GENERATION_LLM_THINKING_MODE):
+    return ChatGroq(
+        model=model,
         api_key=os.environ['GROQ_API_KEY'],
-        max_tokens=GENERATION_LLM_MAX_TOKENS,
-        temperature=GENERATION_TEMPERATURE,
-        max_retries=MAX_LLM_RETRIES,
-        reasoning_effort=GENERATION_LLM_THINKING_MODE
+        max_tokens=max_tokens,
+        temperature=temperature,
+        max_retries=max_retries,
+        reasoning_effort=reasoning_effort
     )
+
+generation_llm = get_groq()
