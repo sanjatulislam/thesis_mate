@@ -109,8 +109,8 @@ Both specialists are ReAct agents: they decide themselves which tools to call an
 ---
 
 ## RAG pipeline
-1. **Ingestion:** PyMuPDF extracts the PDF; pages are merged and page numbers removed so sections are not cut at page breaks. Chunks of 1500 characters with 300 overlap, split on programme headings first, so each programme's rules stay together. Each chunk gets a `chunk_id`.
-2. **Query decomposition:** the question is split into focused English sub-queries (structured output), e.g. a question about two topics becomes two searches.
+1. **Ingestion:** PyMuPDF extracts the PDF; pages are merged and page numbers removed so sections are not cut at page breaks. Chunks of 1500 characters with 300 overlap. Each chunk gets a `chunk_id`.
+2. **Query decomposition:** the question is split into focused English sub-queries (structured output) after an initial search, e.g. a question about two topics becomes two searches.
 3. **Hybrid retrieval:** Weaviate combines BM25 (exact terms like "VT27" or "TDA2M") with vector search (meaning).
 4. **Reranking:** Cohere reranks the candidates per sub-query; duplicates are merged by `chunk_id`.
 5. **Grounded answer:** the LLM answers only from the retrieved excerpts, with dates and programme rules kept exact; if the answer isn't there, it says so.
@@ -180,7 +180,10 @@ Use a new chat for each group.
 - **Structured job memory:** keep the ids of the positions shown to the student in the graph state, so follow-ups about "the first one" or "these" never depend on text copied between agents.
 - **Long-conversation memory:** summarize older messages, or store more key facts as state fields (like the programme), so details from early in a long chat are kept.
 - **Persistent memory:** a SQLite/Postgres checkpointer instead of in-memory state.
+- **Query classification before retrieval:** classify each question as simple or multi-topic. Simple questions go straight to retrieval; multi-topic questions run the initial search and are decomposed further only when the rerank scores are low. This saves the initial search and score check for most questions, reducing latency.
+- **Heading-aware chunking:** split the guidelines at section and programme headings first, so each programme's rules stay in one chunk and chunks can carry their section as metadata.
 - **Evaluation:** an automated test set for routing decisions and RAG answers (correctness, faithfulness). Use LLM-as-judge scoring of RAG answers for correctness against reference answers and faithfulness to the retrieved excerpts.
+- **Title-based job lookup:** let the job tools find positions by title as well as by id (first in the session's job cache, then through the JobTech API), so follow-up questions still work when a position's id or link was lost.
 - **Programme-aware search:** derive several search topics from the student's programme (e.g. Embedded Systems → "embedded systems", "IoT", "real-time systems") and combine the results, instead of one topic per search.
 - **Smarter thesis detection:** also check the ad description for clear thesis phrases, or classify ads with a small LLM call, so thesis positions are found even when the title doesn't say so.
 - **Citations** linking each rule to its section in the guidelines PDF.
@@ -189,7 +192,8 @@ Use a new chat for each group.
 
 ## Known limitations
 
-- **Incomplete job follow-ups:** for questions like "when do these close?", the Supervisor copies the earlier positions' titles and links into the Job Scout's task. With long lists, this copied text is sometimes cut off, so the answer covers only some of the positions and the Job Scout asks the student for the missing links. 
+- **Incomplete job follow-ups:** only each agent's final answer is kept in the conversation history; its tool calls and tool results (including the job ids) are discarded. For follow-up questions like "when do these close?", the Supervisor has to copy the earlier positions' titles and links into the Job Scout's task, and with long lists this copied text is sometimes cut off. The Job Scout then can't find all the positions, so the answer covers only some of them and asks the student for the missing links.
 - **Groq token limits:** groq's free tier has a daily token limit, so long test sessions can hit rate limits.
+- **Extra work for simple questions:** every question first runs an initial search and is then decomposed into sub-queries. For simple, single-topic questions this step adds latency.
 - **Limited conversation window:** the Supervisor only sees the last 20 messages, so details mentioned early in a long chat (e.g. a name given in the first message) are forgotten. The student's programme is not affected: it is stored as its own state field and included in every Supervisor prompt.
 - **Thesis ad detection:** jobTech ads are not tagged as thesis positions, so a keyword filter decides; a few false positives or misses are possible.
