@@ -4,7 +4,7 @@ A multi-agent assistant for master's students at the IT Department, Uppsala Univ
 
 - **Thesis rules** come from the department's guidelines PDF, through RAG.
 - **Thesis positions** come live from the JobTech JobSearch API.
-- A **Supervisor** plans each message and hands the work to two specialist agents, which can work together on one question.
+- A **Supervisor** plans each task and hands the tasks to two specialist agents, which can work together on one question.
 
 ---
 
