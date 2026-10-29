@@ -8,9 +8,9 @@ A multi-agent assistant for master's students at the IT Department, Uppsala Univ
 
 ---
 
-## Assignment requirements
+## System Components
 
-| Requirement | How ThesisMate meets it |
+| Requirement | Implementation |
 |---|---|
 | LLM | Qwen 3.8 27B (instruct mode) on Groq |
 | Small RAG knowledge base | The IT Department's thesis guidelines PDF, chunked and stored in Weaviate |
